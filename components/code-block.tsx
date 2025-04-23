@@ -10,12 +10,8 @@ import {
   ArrowUp,
   ArrowDown,
 } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import Editor from "@monaco-editor/react";
+import { HoverPopover } from "@/components/ui/popover";
 
 interface CodeBlockProps {
   id: string;
@@ -103,20 +99,16 @@ export default function CodeBlock({
             theme="vs"
           />
         </div>
-
-        <Popover>
-          <PopoverTrigger asChild>
-            <button
-              className="ml-2 p-1 rounded-full hover:bg-gray-100 focus:outline-none"
-              onClick={(e) => e.stopPropagation()}
-            >
+        {isHovered && (
+          <HoverPopover
+            content={<p className="text-sm">{explanation}</p>}
+            className="absolute -right-8 top-1/2 transform -translate-y-1/2"
+          >
+            <div className="ml-2 p-1 rounded-full hover:bg-gray-100">
               <HelpCircle className="h-5 w-5 text-gray-500" />
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80 p-4 text-sm">
-            <p>{explanation}</p>
-          </PopoverContent>
-        </Popover>
+            </div>
+          </HoverPopover>
+        )}
       </div>
 
       {/* Hint arrows */}

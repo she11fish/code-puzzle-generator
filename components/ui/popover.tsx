@@ -1,5 +1,3 @@
-"use client";
-
 import * as React from "react";
 import * as PopoverPrimitive from "@radix-ui/react-popover";
 
@@ -27,5 +25,53 @@ const PopoverContent = React.forwardRef<
   </PopoverPrimitive.Portal>
 ));
 PopoverContent.displayName = PopoverPrimitive.Content.displayName;
+
+export const HoverPopover = ({
+  children,
+  content,
+  className,
+  ...props
+}: {
+  children: React.ReactNode;
+  content: React.ReactNode;
+  className?: string;
+}) => {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const timeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    setIsOpen(true);
+  };
+
+  const handleMouseLeave = () => {
+    timeoutRef.current = setTimeout(() => {
+      setIsOpen(false);
+    }, 300);
+  };
+
+  return (
+    <Popover open={isOpen}>
+      <div
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        className={cn("relative inline-block", className)}
+      >
+        <PopoverTrigger asChild>
+          <div>{children}</div>
+        </PopoverTrigger>
+        <PopoverContent
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          {...props}
+        >
+          {content}
+        </PopoverContent>
+      </div>
+    </Popover>
+  );
+};
 
 export { Popover, PopoverTrigger, PopoverContent };
