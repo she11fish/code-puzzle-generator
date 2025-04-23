@@ -106,7 +106,10 @@ export default function CodeBlock({
 
         <Popover>
           <PopoverTrigger asChild>
-            <button className="ml-2 p-1 rounded-full hover:bg-gray-100 focus:outline-none">
+            <button
+              className="ml-2 p-1 rounded-full hover:bg-gray-100 focus:outline-none"
+              onClick={(e) => e.stopPropagation()}
+            >
               <HelpCircle className="h-5 w-5 text-gray-500" />
             </button>
           </PopoverTrigger>
