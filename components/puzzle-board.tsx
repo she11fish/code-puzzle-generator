@@ -8,6 +8,7 @@ import {
   useSensor,
   useSensors,
   PointerSensor,
+  DragMoveEvent,
 } from "@dnd-kit/core";
 import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import { Button } from "@/components/ui/button";
@@ -43,6 +44,8 @@ interface BlockPosition {
   y: number;
 }
 
+const gridSize = 50; // Size of the grid for snapping
+
 export default function PuzzleBoard({ puzzle }: PuzzleProps) {
   const [positions, setPositions] = useState<BlockPosition[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -56,6 +59,10 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
   const [hintDisabled, setHintDisabled] = useState(false);
   const [history, setHistory] = useState<BlockPosition[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [highlightedPoint, setHighlightedPoint] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
   const { toast } = useToast();
 
   const boardRef = useRef<HTMLDivElement>(null);
@@ -89,41 +96,6 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
-  };
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    setActiveId(null);
-
-    const { active, delta } = event;
-    const id = active.id as string;
-
-    // Update position
-    setPositions((prev) => {
-      const newPositions = prev.map((pos) => {
-        if (pos.id === id) {
-          return {
-            ...pos,
-            x: pos.x + delta.x,
-            y: pos.y + delta.y,
-          };
-        }
-        return pos;
-      });
-
-      // Add to history
-      const newHistory = history.slice(0, historyIndex + 1);
-      newHistory.push(newPositions);
-      setHistory(newHistory);
-      setHistoryIndex(newHistory.length - 1);
-
-      return newPositions;
-    });
-
-    // Clear any incorrect blocks highlighting
-    setIncorrectBlocks([]);
-    // Clear any hints
-    setHintBlock(null);
-    setHintDirection(null);
   };
 
   const handleUndo = () => {
@@ -242,6 +214,79 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [historyIndex, history]);
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveId(null);
+
+    const { active, delta } = event;
+    const id = active.id as string;
+
+    setPositions((prev) => {
+      const newPositions = prev.map((pos) => {
+        if (pos.id === id) {
+          const newX = pos.x + delta.x;
+          const newY = pos.y + delta.y;
+
+          // Find the correct region for this block
+          const block = puzzle.blocks.find((b) => b.id === id);
+          if (!block) return pos;
+
+          const { x: correctX, y: correctY } = block.correctPosition;
+          const tolerance = 50; // Same as the region size
+
+          // Check if the block is within the correct region
+          const isInCorrectRegion =
+            Math.abs(newX - correctX) <= tolerance / 2 &&
+            puzzle.blocks.some(
+              (b) => Math.abs(newY - b.correctPosition.y) <= tolerance / 2
+            );
+          if (isInCorrectRegion) {
+            // Find the best `prev` position based on the closest Euclidean distance
+            const bestPrev = puzzle.blocks.reduce((closest, p) => {
+              const distance = Math.hypot(
+                newX - p.correctPosition.x,
+                newY - p.correctPosition.y
+              );
+              const closestDistance = Math.hypot(
+                newX - closest.correctPosition.x,
+                newY - closest.correctPosition.y
+              );
+              return distance < closestDistance ? p : closest;
+            }, puzzle.blocks[0]);
+
+            // Snap to the best `prev` position
+            return {
+              ...pos,
+              x: correctX,
+              y: bestPrev.correctPosition.y,
+            };
+          }
+
+          // If not in the correct region, return the new position without snapping
+          return {
+            ...pos,
+            x: newX,
+            y: newY,
+          };
+        }
+        return pos;
+      });
+
+      // Add to history
+      const newHistory = history.slice(0, historyIndex + 1);
+      newHistory.push(newPositions);
+      setHistory(newHistory);
+      setHistoryIndex(newHistory.length - 1);
+
+      return newPositions;
+    });
+
+    // Clear any incorrect blocks highlighting
+    setIncorrectBlocks([]);
+    // Clear any hints
+    setHintBlock(null);
+    setHintDirection(null);
+  };
 
   return (
     <div className="bg-gray-100 rounded-lg p-4">

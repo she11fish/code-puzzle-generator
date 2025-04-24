@@ -15,21 +15,21 @@ const puzzle = {
       code: "def print_block(char, width, height):".trim(),
       explanation:
         "Defines a function named 'print_block' that takes three parameters: 'char' for the character to print, 'width' for the number of characters per line, and 'height' for the number of lines to print.",
-      correctPosition: { x: 400, y: 20 },
+      correctPosition: { x: 700, y: 20 },
     },
     {
       id: "0639955a-5af1-4290-900b-a2a82bb4b217",
       code: "    for _ in range(height):".trim(),
       explanation:
         "Starts a loop that runs 'height' times, to print each line of the block.",
-      correctPosition: { x: 400, y: 80 },
+      correctPosition: { x: 700, y: 70 },
     },
     {
       id: "f15664cc-165b-4015-a010-90412bb62aec",
       code: "        print(char * width)".trim(),
       explanation:
         "Prints a line consisting of the character 'char' repeated 'width' times, creating one row of the block.",
-      correctPosition: { x: 400, y: 140 },
+      correctPosition: { x: 700, y: 120 },
     },
   ],
   solution: `def print_block(char, width, height):

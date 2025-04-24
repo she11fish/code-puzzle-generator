@@ -72,7 +72,7 @@ Make sure each block is a meaningful unit of code (e.g., a line, a function, a l
         explanation: block.explanation,
         // Set the correct position (right side, stacked vertically)
         correctPosition: {
-          x: 400, // Right side
+          x: 800, // Right side
           y: 20 + index * 60, // Stacked vertically with spacing
         },
       }
