@@ -139,12 +139,6 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
 
     if (incorrect.length === 0) {
       setShowSuccess(true);
-    } else {
-      // toast({
-      //   title: `${incorrect.length} blocks are incorrectly placed`,
-      //   description: "Try rearranging the highlighted blocks.",
-      //   variant: "destructive",
-      // });
     }
   };
 
