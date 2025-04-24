@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { RefObject, useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { HoverPopover } from "@/components/ui/popover";
+import { mergeRefs } from "@/lib/utils";
 
 interface CodeBlockProps {
   id: string;
@@ -22,6 +23,7 @@ interface CodeBlockProps {
   isIncorrect?: boolean;
   showHint?: boolean;
   hintDirection: { x: number; y: number } | null;
+  ref: RefObject<HTMLDivElement | null>;
 }
 
 export default function CodeBlock({
@@ -33,6 +35,7 @@ export default function CodeBlock({
   isIncorrect = false,
   showHint = false,
   hintDirection,
+  ref,
 }: CodeBlockProps) {
   const [isHovered, setIsHovered] = useState(false);
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
@@ -55,9 +58,11 @@ export default function CodeBlock({
       ? "javascript"
       : "plaintext";
 
+  const finalRef = mergeRefs([setNodeRef, ref]);
+
   return (
     <div
-      ref={setNodeRef}
+      ref={finalRef}
       style={style}
       className={`absolute cursor-grab ${isActive ? "cursor-grabbing" : ""}`}
       {...listeners}
@@ -67,7 +72,7 @@ export default function CodeBlock({
     >
       <div
         className={`
-          bg-white rounded-md shadow-md border-2 
+          bg-white rounded-md border-2 
           ${isIncorrect ? "border-red-500" : "border-purple-200"} 
           p-1 flex items-center
         `}

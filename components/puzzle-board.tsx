@@ -8,7 +8,6 @@ import {
   useSensor,
   useSensors,
   PointerSensor,
-  DragMoveEvent,
 } from "@dnd-kit/core";
 import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import { Button } from "@/components/ui/button";
@@ -23,6 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import CodeBlock from "@/components/code-block";
 import { Undo, Redo, HelpCircle, Check } from "lucide-react";
+import { TOLERANCE, INDENT_WIDTH, LINE_HEIGHT } from "@/lib/constants";
 
 interface PuzzleBlock {
   id: string;
@@ -44,8 +44,6 @@ interface BlockPosition {
   y: number;
 }
 
-const gridSize = 50; // Size of the grid for snapping
-
 export default function PuzzleBoard({ puzzle }: PuzzleProps) {
   const [positions, setPositions] = useState<BlockPosition[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -63,6 +61,7 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
     x: number;
     y: number;
   } | null>(null);
+  const blockRefs = useRef<HTMLDivElement | null>(null);
   const { toast } = useToast();
 
   const boardRef = useRef<HTMLDivElement>(null);
@@ -126,13 +125,11 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
       const currentPos = positions.find((pos) => pos.id === block.id);
       if (!currentPos) return;
 
-      // Check if the block is in the correct position (with some tolerance)
-      const tolerance = 30; // pixels
       const isCorrectX =
-        Math.abs(currentPos.x - block.correctPosition.x) <= tolerance;
+        Math.abs(currentPos.x - block.correctPosition.x) <= TOLERANCE;
       const isCorrectY =
-        Math.abs(currentPos.y - block.correctPosition.y) <= tolerance;
-
+        Math.abs(currentPos.y - block.correctPosition.y) <= TOLERANCE;
+      console.log("test", block.correctPosition.x, block.correctPosition.y);
       if (!isCorrectX || !isCorrectY) {
         incorrect.push(block.id);
       }
@@ -143,11 +140,11 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
     if (incorrect.length === 0) {
       setShowSuccess(true);
     } else {
-      toast({
-        title: `${incorrect.length} blocks are incorrectly placed`,
-        description: "Try rearranging the highlighted blocks.",
-        variant: "destructive",
-      });
+      // toast({
+      //   title: `${incorrect.length} blocks are incorrectly placed`,
+      //   description: "Try rearranging the highlighted blocks.",
+      //   variant: "destructive",
+      // });
     }
   };
 
@@ -158,12 +155,10 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
     const incorrect = puzzle.blocks.filter((block) => {
       const currentPos = positions.find((pos) => pos.id === block.id);
       if (!currentPos) return false;
-
-      const tolerance = 30;
       const isCorrectX =
-        Math.abs(currentPos.x - block.correctPosition.x) <= tolerance;
+        Math.abs(currentPos.x - block.correctPosition.x) <= TOLERANCE;
       const isCorrectY =
-        Math.abs(currentPos.y - block.correctPosition.y) <= tolerance;
+        Math.abs(currentPos.y - block.correctPosition.y) <= TOLERANCE;
 
       return !isCorrectX || !isCorrectY;
     });
@@ -185,10 +180,17 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
     if (currentPos) {
       const xDiff = randomBlock.correctPosition.x - currentPos.x;
       const yDiff = randomBlock.correctPosition.y - currentPos.y;
-
+      let xDiffAfterToleration = xDiff;
+      let yDiffAfterToleration = yDiff;
+      if (Math.abs(xDiff) <= TOLERANCE) {
+        xDiffAfterToleration = 0;
+      }
+      if (Math.abs(yDiff) <= TOLERANCE) {
+        yDiffAfterToleration = 0;
+      }
       setHintDirection({
-        x: Math.sign(xDiff),
-        y: Math.sign(yDiff),
+        x: Math.sign(xDiffAfterToleration),
+        y: Math.sign(yDiffAfterToleration),
       });
     }
 
@@ -227,46 +229,31 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
           const newX = pos.x + delta.x;
           const newY = pos.y + delta.y;
 
-          // Find the correct region for this block
           const block = puzzle.blocks.find((b) => b.id === id);
-          if (!block) return pos;
+          if (!block || !boardRef.current || !blockRefs.current) return pos;
 
-          const { x: correctX, y: correctY } = block.correctPosition;
-          const tolerance = 50; // Same as the region size
+          const snappedX =
+            INDENT_WIDTH +
+            Math.round((newX - INDENT_WIDTH) / INDENT_WIDTH) * INDENT_WIDTH;
+          const snappedY =
+            LINE_HEIGHT +
+            Math.round((newY - LINE_HEIGHT) / LINE_HEIGHT) * LINE_HEIGHT;
 
-          // Check if the block is within the correct region
-          const isInCorrectRegion =
-            Math.abs(newX - correctX) <= tolerance / 2 &&
-            puzzle.blocks.some(
-              (b) => Math.abs(newY - b.correctPosition.y) <= tolerance / 2
-            );
-          if (isInCorrectRegion) {
-            // Find the best `prev` position based on the closest Euclidean distance
-            const bestPrev = puzzle.blocks.reduce((closest, p) => {
-              const distance = Math.hypot(
-                newX - p.correctPosition.x,
-                newY - p.correctPosition.y
-              );
-              const closestDistance = Math.hypot(
-                newX - closest.correctPosition.x,
-                newY - closest.correctPosition.y
-              );
-              return distance < closestDistance ? p : closest;
-            }, puzzle.blocks[0]);
-
-            // Snap to the best `prev` position
-            return {
-              ...pos,
-              x: correctX,
-              y: bestPrev.correctPosition.y,
-            };
-          }
-
-          // If not in the correct region, return the new position without snapping
+          const canvasWidth = boardRef.current.clientWidth;
+          const canvasHeight = boardRef.current.clientHeight;
+          const clampedX = Math.max(
+            INDENT_WIDTH,
+            Math.min(snappedX, canvasWidth - blockRefs.current.clientWidth)
+          );
+          const clampedY = Math.max(
+            LINE_HEIGHT,
+            // Added padding to ensure it doesn't go too far down
+            Math.min(snappedY, canvasHeight - LINE_HEIGHT - 39)
+          );
           return {
             ...pos,
-            x: newX,
-            y: newY,
+            x: clampedX,
+            y: clampedY,
           };
         }
         return pos;
@@ -305,7 +292,24 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
 
           {/* Right side (available blocks) */}
           <div className="absolute right-0 top-0 w-1/2 h-full bg-yellow-100"></div>
-
+          {process.env.NODE_ENV === "development" && (
+            <>
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div
+                  key={`row-${i}`}
+                  className="absolute w-full h-px bg-gray-200"
+                  style={{ top: i * LINE_HEIGHT }}
+                />
+              ))}
+              {Array.from({ length: 35 }).map((_, i) => (
+                <div
+                  key={`col-${i}`}
+                  className="absolute h-full w-px bg-gray-200"
+                  style={{ left: i * INDENT_WIDTH }}
+                />
+              ))}
+            </>
+          )}
           {/* Blocks */}
           {positions.map((position, index) => {
             const block = puzzle.blocks.find((b) => b.id === position.id);
@@ -314,6 +318,7 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
               <CodeBlock
                 key={block.id}
                 id={block.id}
+                ref={blockRefs}
                 code={block.code}
                 explanation={block.explanation}
                 position={{ x: position.x, y: position.y }}
