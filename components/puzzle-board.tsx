@@ -42,7 +42,6 @@ interface PuzzleBlock {
 interface PuzzleProps {
   puzzle: {
     blocks: PuzzleBlock[];
-    solution: string;
   };
 }
 

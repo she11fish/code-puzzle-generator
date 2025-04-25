@@ -7,63 +7,18 @@ import ApiKeyModal from "@/components/api-key-modal";
 import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
-import { generatePuzzle } from "@/lib/generate-puzzle";
-import { INDENT_WIDTH } from "@/lib/constants";
+import { generatePuzzle } from "@/app/actions";
 
-const puzzle = {
-  blocks: [
-    {
-      id: "3b1725e2-d300-4aba-86f3-2c6fdb863014",
-      code: "def print_block(char: str, width: int, height: int) -> None:".trim(),
-      explanation:
-        "Defines a function named 'print_block' that takes three parameters: 'char' for the character to print, 'width' for the number of characters per line, and 'height' for the number of lines to print.",
-      correctPosition: { x: 700, y: 50 },
-    },
-    {
-      id: "0639955a-5af1-4290-900b-a2a82bb4b217",
-      code: "    for _ in range(height):".trim(),
-      explanation:
-        "Starts a loop that runs 'height' times, to print each line of the block.",
-      correctPosition: { x: 700 + INDENT_WIDTH, y: 100 },
-    },
-    {
-      id: "f15664cc-165b-4015-a010-90412bb62aec",
-      code: "        print(char * width)".trim(),
-      explanation:
-        "Prints a line consisting of the character 'char' repeated 'width' times, creating one row of the block.",
-      correctPosition: { x: 700 + INDENT_WIDTH * 2, y: 150 },
-    },
-    {
-      id: "f15664cc-165b-4015-a010-90412bb62aeca",
-      code: "        print(char * width)".trim(),
-      explanation:
-        "Prints a line consisting of the character 'char' repeated 'width' times, creating one row of the block.",
-      correctPosition: { x: 700 + INDENT_WIDTH * 2, y: 200 },
-    },
-    {
-      id: "f15664cc-165b-4015-a010-90412bb62aecb",
-      code: "        print(char * width)".trim(),
-      explanation:
-        "Prints a line consisting of the character 'char' repeated 'width' times, creating one row of the block.",
-      correctPosition: { x: 700 + INDENT_WIDTH * 2, y: 250 },
-    },
-  ],
-  solution: `def print_block(char: str, width: int, height: int) -> None:
-    for _ in range(height):
-        print(char * width)
-        print(char * width)`,
-};
 export default function Home() {
   const [task, setTask] = useState("");
-  // const [puzzle, setPuzzle] = useState<{
-  //   blocks: Array<{
-  //     id: string;
-  //     code: string;
-  //     explanation: string;
-  //     correctPosition: { x: number; y: number };
-  //   }>;
-  //   solution: string;
-  // } | null>(null);
+  const [puzzle, setPuzzle] = useState<{
+    blocks: Array<{
+      id: string;
+      code: string;
+      explanation: string;
+      correctPosition: { x: number; y: number };
+    }>;
+  } | null>(null);
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
@@ -96,8 +51,7 @@ export default function Home() {
     try {
       setIsGenerating(true);
       const generatedPuzzle = await generatePuzzle(task, apiKey);
-      // setPuzzle(generatedPuzzle);
-      console.log(generatedPuzzle);
+      setPuzzle(generatedPuzzle);
     } catch (error) {
       console.error("Error generating puzzle:", error);
       toast({
@@ -135,9 +89,7 @@ export default function Home() {
         <div className="mb-4">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-semibold">Solve the Puzzle</h2>
-            <Button
-              variant="outline" //onClick={() => setPuzzle(null)}>
-            >
+            <Button variant="outline" onClick={() => setPuzzle(null)}>
               New Puzzle
             </Button>
           </div>

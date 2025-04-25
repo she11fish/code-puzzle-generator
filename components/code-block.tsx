@@ -46,7 +46,6 @@ export default function CodeBlock({
     id,
     disabled: !isDraggable,
   });
-  console.log(hintEnabled);
   const style = {
     transform: CSS.Translate.toString(transform),
     left: `${position.x}px`,
