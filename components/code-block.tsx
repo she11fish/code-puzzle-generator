@@ -85,6 +85,7 @@ export default function CodeBlock({
               value={code}
               options={{
                 minimap: { enabled: false },
+                domReadOnly: true,
                 scrollBeyondLastLine: false,
                 lineNumbers: "off",
                 folding: false,
