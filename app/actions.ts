@@ -5,22 +5,19 @@ import { INDENT_WIDTH } from "../lib/constants";
 import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
 import { PuzzleResponseSchema } from "@/schema/puzzle";
-
-interface PuzzleBlock {
-  id: string;
-  code: string;
-  explanation: string;
-  correctPosition: { x: number; y: number };
-}
-
-interface Puzzle {
-  blocks: PuzzleBlock[];
-}
+import { Puzzle, PuzzleBlock } from "@/interface/puzzle";
+import { headers } from "next/headers";
+import { rateLimit } from "@/lib/rateLimiter";
 
 export async function generatePuzzle(
   task: string,
   apiKey: string
 ): Promise<Puzzle> {
+  const ip = (await headers()).get("x-forwarded-for") ?? "unknown";
+  const isRateLimited = rateLimit(ip);
+  if (isRateLimited) {
+    throw new Error("Rate limit exceeded, please try again later.");
+  }
   try {
     const openai = new OpenAI({
       apiKey,
@@ -65,7 +62,7 @@ Make sure each block is a meaningful unit of code (e.g., a line, a function, a l
     }
 
     const parsedContent = PuzzleResponseSchema.parse(JSON.parse(content));
-    
+
     // Create blocks with positions
     const blocks: PuzzleBlock[] = parsedContent.blocks.map(
       (block: any, index: number) => {
