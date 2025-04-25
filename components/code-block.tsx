@@ -104,7 +104,7 @@ export default function CodeBlock({
             theme="vs"
           />
         </div>
-        {isHovered && (
+        {isHovered && !isActive && (
           <HoverPopover
             content={<p className="text-sm">{explanation}</p>}
             className="absolute -right-8 top-1/2 transform -translate-y-1/2"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import {
   DndContext,
   type DragEndEvent,
@@ -8,6 +8,7 @@ import {
   useSensor,
   useSensors,
   PointerSensor,
+  DragMoveEvent,
 } from "@dnd-kit/core";
 import { restrictToWindowEdges } from "@dnd-kit/modifiers";
 import { Button } from "@/components/ui/button";
@@ -21,8 +22,13 @@ import {
   AlertDialogFooter,
 } from "@/components/ui/alert-dialog";
 import CodeBlock from "@/components/code-block";
-import { Undo, Redo, HelpCircle, Check } from "lucide-react";
-import { TOLERANCE, INDENT_WIDTH, LINE_HEIGHT } from "@/lib/constants";
+import { Undo, Redo, HelpCircle, Check, X } from "lucide-react";
+import {
+  TOLERANCE,
+  INDENT_WIDTH,
+  LINE_HEIGHT,
+  LEFT_BOUNDARY_X,
+} from "@/lib/constants";
 
 interface PuzzleBlock {
   id: string;
@@ -57,11 +63,11 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
   const [hintDisabled, setHintDisabled] = useState(false);
   const [history, setHistory] = useState<BlockPosition[][]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
-  const [highlightedPoint, setHighlightedPoint] = useState<{
+  const [shadowBlock, setShadowBlock] = useState<{
     x: number;
     y: number;
   } | null>(null);
-  const blockRefs = useRef<HTMLDivElement | null>(null);
+  const blockRef = useRef<HTMLDivElement | null>(null);
   const { toast } = useToast();
 
   const boardRef = useRef<HTMLDivElement>(null);
@@ -129,7 +135,15 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
         Math.abs(currentPos.x - block.correctPosition.x) <= TOLERANCE;
       const isCorrectY =
         Math.abs(currentPos.y - block.correctPosition.y) <= TOLERANCE;
-      console.log("test", block.correctPosition.x, block.correctPosition.y);
+      const correctDuplicateBlock = puzzle.blocks
+        .filter((b) => b.id !== block.id)
+        .find(
+          (b) =>
+            Math.abs(currentPos.x - b.correctPosition.x) <= TOLERANCE &&
+            Math.abs(currentPos.y - b.correctPosition.y) <= TOLERANCE &&
+            b.code.trim() === block.code.trim()
+        );
+      if (correctDuplicateBlock) return false;
       if (!isCorrectX || !isCorrectY) {
         incorrect.push(block.id);
       }
@@ -153,7 +167,15 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
         Math.abs(currentPos.x - block.correctPosition.x) <= TOLERANCE;
       const isCorrectY =
         Math.abs(currentPos.y - block.correctPosition.y) <= TOLERANCE;
-
+      const correctDuplicateBlock = puzzle.blocks
+        .filter((b) => b.id !== block.id)
+        .find(
+          (b) =>
+            Math.abs(currentPos.x - b.correctPosition.x) <= TOLERANCE &&
+            Math.abs(currentPos.y - b.correctPosition.y) <= TOLERANCE &&
+            b.code.trim() === block.code.trim()
+        );
+      if (correctDuplicateBlock) return false;
       return !isCorrectX || !isCorrectY;
     });
 
@@ -223,9 +245,7 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
           const newX = pos.x + delta.x;
           const newY = pos.y + delta.y;
 
-          const block = puzzle.blocks.find((b) => b.id === id);
-          if (!block || !boardRef.current || !blockRefs.current) return pos;
-
+          if (!boardRef.current || !blockRef.current) return pos;
           const snappedX =
             INDENT_WIDTH +
             Math.round((newX - INDENT_WIDTH) / INDENT_WIDTH) * INDENT_WIDTH;
@@ -237,13 +257,21 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
           const canvasHeight = boardRef.current.clientHeight;
           const clampedX = Math.max(
             INDENT_WIDTH,
-            Math.min(snappedX, canvasWidth - blockRefs.current.clientWidth)
+            Math.min(snappedX, canvasWidth - blockRef.current.clientWidth)
           );
           const clampedY = Math.max(
             LINE_HEIGHT,
             // Added padding to ensure it doesn't go too far down
             Math.min(snappedY, canvasHeight - LINE_HEIGHT - 39)
           );
+
+          if (
+            clampedX < LEFT_BOUNDARY_X ||
+            positions.some(
+              (position) => position.id !== id && position.y === clampedY
+            )
+          )
+            return pos;
           return {
             ...pos,
             x: clampedX,
@@ -267,6 +295,54 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
     // Clear any hints
     setHintBlock(null);
     setHintDirection(null);
+    setShadowBlock(null);
+  };
+
+  const handleDragMove = (event: DragMoveEvent) => {
+    const { active, delta } = event;
+    const id = active.id as string;
+    const pos = positions.find((pos) => pos.id === activeId)!;
+
+    const newX = pos.x + delta.x;
+    const newY = pos.y + delta.y;
+
+    if (!boardRef.current || !blockRef.current) {
+      setShadowBlock(null);
+      return;
+    }
+    const snappedX =
+      INDENT_WIDTH +
+      Math.round((newX - INDENT_WIDTH) / INDENT_WIDTH) * INDENT_WIDTH;
+    const snappedY =
+      LINE_HEIGHT +
+      Math.round((newY - LINE_HEIGHT) / LINE_HEIGHT) * LINE_HEIGHT;
+
+    const canvasWidth = boardRef.current.clientWidth;
+    const canvasHeight = boardRef.current.clientHeight;
+    const clampedX = Math.max(
+      INDENT_WIDTH,
+      Math.min(snappedX, canvasWidth - blockRef.current.clientWidth)
+    );
+    const clampedY = Math.max(
+      LINE_HEIGHT,
+      // Added padding to ensure it doesn't go too far down
+      Math.min(snappedY, canvasHeight - LINE_HEIGHT - 39)
+    );
+
+    if (
+      clampedX < LEFT_BOUNDARY_X ||
+      positions.some(
+        (position) => position.id !== id && position.y === clampedY
+      )
+    ) {
+      setShadowBlock(null);
+      return;
+    }
+    
+    setShadowBlock({
+      x: clampedX,
+      y: clampedY,
+    });
   };
 
   return (
@@ -276,6 +352,7 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
         modifiers={[restrictToWindowEdges]}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
+        onDragMove={handleDragMove}
       >
         <div
           ref={boardRef}
@@ -283,6 +360,17 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
         >
           {/* Left side (workspace) */}
           <div className="absolute left-0 top-0 w-1/2 h-full bg-yellow-50 border-r border-gray-200"></div>
+          {shadowBlock && (
+            <div
+              className="absolute z-50 pointer-events-none bg-blue-200/30 border-2 border-gray-400 rounded-md shadow-xl transition-all duration-150"
+              style={{
+                top: shadowBlock.y,
+                left: shadowBlock.x,
+                width: blockRef.current!.offsetWidth,
+                height: blockRef.current!.offsetHeight,
+              }}
+            />
+          )}
 
           {/* Right side (available blocks) */}
           <div className="absolute right-0 top-0 w-1/2 h-full bg-yellow-100"></div>
@@ -291,15 +379,15 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
               {Array.from({ length: 10 }).map((_, i) => (
                 <div
                   key={`row-${i}`}
-                  className="absolute w-full h-px bg-gray-200"
+                  className="absolute right-0 w-1/2 h-px bg-gray-200"
                   style={{ top: i * LINE_HEIGHT }}
                 />
               ))}
-              {Array.from({ length: 35 }).map((_, i) => (
+              {Array.from({ length: 16 }).map((_, i) => (
                 <div
                   key={`col-${i}`}
-                  className="absolute h-full w-px bg-gray-200"
-                  style={{ left: i * INDENT_WIDTH }}
+                  className="absolute right-0 h-full w-px bg-gray-200"
+                  style={{ left: (i + 16) * INDENT_WIDTH }}
                 />
               ))}
             </>
@@ -312,7 +400,7 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
               <CodeBlock
                 key={block.id}
                 id={block.id}
-                ref={blockRefs}
+                ref={blockRef}
                 code={block.code}
                 explanation={block.explanation}
                 position={{ x: position.x, y: position.y }}
@@ -324,7 +412,6 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
             );
           })}
         </div>
-
         <div className="flex justify-between">
           <div className="space-x-2">
             <Button

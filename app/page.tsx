@@ -12,28 +12,36 @@ const puzzle = {
   blocks: [
     {
       id: "3b1725e2-d300-4aba-86f3-2c6fdb863014",
-      code: "def print_block(char, width, height):".trim(),
+      code: "def print_block(char: str, width: int, height: int) -> None:".trim(),
       explanation:
         "Defines a function named 'print_block' that takes three parameters: 'char' for the character to print, 'width' for the number of characters per line, and 'height' for the number of lines to print.",
-      correctPosition: { x: 900, y: 300 },
+      correctPosition: { x: 700, y: 50 },
     },
     {
       id: "0639955a-5af1-4290-900b-a2a82bb4b217",
       code: "    for _ in range(height):".trim(),
       explanation:
         "Starts a loop that runs 'height' times, to print each line of the block.",
-      correctPosition: { x: 900, y: 350 },
+      correctPosition: { x: 700, y: 100 },
     },
     {
       id: "f15664cc-165b-4015-a010-90412bb62aec",
       code: "        print(char * width)".trim(),
       explanation:
         "Prints a line consisting of the character 'char' repeated 'width' times, creating one row of the block.",
-      correctPosition: { x: 900, y: 400 },
+      correctPosition: { x: 700, y: 150 },
+    },
+    {
+      id: "f15664cc-165b-4015-a010-90412bb62aeca",
+      code: "        print(char * width)".trim(),
+      explanation:
+        "Prints a line consisting of the character 'char' repeated 'width' times, creating one row of the block.",
+      correctPosition: { x: 700, y: 200 },
     },
   ],
-  solution: `def print_block(char, width, height):
+  solution: `def print_block(char: str, width: int, height: int) -> None:
     for _ in range(height):
+        print(char * width)
         print(char * width)`,
 };
 export default function Home() {
