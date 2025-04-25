@@ -28,6 +28,8 @@ import {
   INDENT_WIDTH,
   LINE_HEIGHT,
   LEFT_BOUNDARY_X,
+  FIRST_BLOCK_X,
+  FIRST_BLOCK_Y,
 } from "@/lib/constants";
 
 interface PuzzleBlock {
@@ -83,11 +85,19 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
   useEffect(() => {
     if (puzzle && puzzle.blocks) {
       // Create initial positions with random placement on the left side
-      const initialPositions = puzzle.blocks.map((block, index) => ({
-        id: block.id,
-        x: 20, // Left side
-        y: 20 + index * 60, // Stacked vertically with some spacing
-      }));
+      const initialPositions = puzzle.blocks.map((block, index) => {
+        if (index === 0)
+          return {
+            id: block.id,
+            x: FIRST_BLOCK_X,
+            y: FIRST_BLOCK_Y,
+          };
+        return {
+          id: block.id,
+          x: 20,
+          y: 20 + (index - 1) * 60,
+        };
+      });
 
       setPositions(initialPositions);
       // Reset history
@@ -135,15 +145,14 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
         Math.abs(currentPos.x - block.correctPosition.x) <= TOLERANCE;
       const isCorrectY =
         Math.abs(currentPos.y - block.correctPosition.y) <= TOLERANCE;
-      const correctDuplicateBlock = puzzle.blocks
-        .filter((b) => b.id !== block.id)
-        .find(
-          (b) =>
-            Math.abs(currentPos.x - b.correctPosition.x) <= TOLERANCE &&
-            Math.abs(currentPos.y - b.correctPosition.y) <= TOLERANCE &&
-            b.code.trim() === block.code.trim()
-        );
-      if (correctDuplicateBlock) return false;
+      const correctDuplicateBlock = puzzle.blocks.find(
+        (b) =>
+          b.id !== block.id &&
+          Math.abs(currentPos.x - b.correctPosition.x) <= TOLERANCE &&
+          Math.abs(currentPos.y - b.correctPosition.y) <= TOLERANCE &&
+          b.code.trim() === block.code.trim()
+      );
+      if (correctDuplicateBlock) return;
       if (!isCorrectX || !isCorrectY) {
         incorrect.push(block.id);
       }
@@ -159,7 +168,6 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
   const handleHint = () => {
     if (hintDisabled) return;
 
-    // Find incorrect blocks
     const incorrect = puzzle.blocks.filter((block) => {
       const currentPos = positions.find((pos) => pos.id === block.id);
       if (!currentPos) return false;
@@ -167,14 +175,13 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
         Math.abs(currentPos.x - block.correctPosition.x) <= TOLERANCE;
       const isCorrectY =
         Math.abs(currentPos.y - block.correctPosition.y) <= TOLERANCE;
-      const correctDuplicateBlock = puzzle.blocks
-        .filter((b) => b.id !== block.id)
-        .find(
-          (b) =>
-            Math.abs(currentPos.x - b.correctPosition.x) <= TOLERANCE &&
-            Math.abs(currentPos.y - b.correctPosition.y) <= TOLERANCE &&
-            b.code.trim() === block.code.trim()
-        );
+      const correctDuplicateBlock = puzzle.blocks.find(
+        (b) =>
+          b.id !== block.id &&
+          Math.abs(currentPos.x - b.correctPosition.x) <= TOLERANCE &&
+          Math.abs(currentPos.y - b.correctPosition.y) <= TOLERANCE &&
+          b.code.trim() === block.code.trim()
+      );
       if (correctDuplicateBlock) return false;
       return !isCorrectX || !isCorrectY;
     });
@@ -189,26 +196,48 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
 
     // Select a random incorrect block
     const randomBlock = incorrect[Math.floor(Math.random() * incorrect.length)];
+    const currentPos = positions.find((pos) => pos.id === randomBlock.id)!;
     setHintBlock(randomBlock.id);
+    let randomBlockPosition = { ...randomBlock.correctPosition };
+    const duplicateBlocks = puzzle.blocks.filter(
+      (b) =>
+        randomBlock.id !== b.id && randomBlock.code.trim() === b.code.trim()
+    );
+    const closestDuplicateBlock = duplicateBlocks.reduce((closest, b) => {
+      const bDist = Math.hypot(
+        b.correctPosition.x - currentPos.x,
+        b.correctPosition.y - currentPos.y
+      );
 
-    // Calculate direction to move
-    const currentPos = positions.find((pos) => pos.id === randomBlock.id);
-    if (currentPos) {
-      const xDiff = randomBlock.correctPosition.x - currentPos.x;
-      const yDiff = randomBlock.correctPosition.y - currentPos.y;
-      let xDiffAfterToleration = xDiff;
-      let yDiffAfterToleration = yDiff;
-      if (Math.abs(xDiff) <= TOLERANCE) {
-        xDiffAfterToleration = 0;
+      const closestDist = Math.hypot(
+        closest.correctPosition.x - currentPos.x,
+        closest.correctPosition.y - currentPos.y
+      );
+      if (bDist < closestDist) {
+        return b;
       }
-      if (Math.abs(yDiff) <= TOLERANCE) {
-        yDiffAfterToleration = 0;
-      }
-      setHintDirection({
-        x: Math.sign(xDiffAfterToleration),
-        y: Math.sign(yDiffAfterToleration),
-      });
+      return closest;
+    }, randomBlock);
+
+    if (closestDuplicateBlock) {
+      randomBlockPosition.x = closestDuplicateBlock.correctPosition.x;
+      randomBlockPosition.y = closestDuplicateBlock.correctPosition.y;
     }
+
+    const xDiff = randomBlockPosition.x - currentPos.x;
+    const yDiff = randomBlockPosition.y - currentPos.y;
+    let xDiffAfterToleration = xDiff;
+    let yDiffAfterToleration = yDiff;
+    if (Math.abs(xDiff) <= TOLERANCE) {
+      xDiffAfterToleration = 0;
+    }
+    if (Math.abs(yDiff) <= TOLERANCE) {
+      yDiffAfterToleration = 0;
+    }
+    setHintDirection({
+      x: Math.sign(xDiffAfterToleration),
+      y: Math.sign(yDiffAfterToleration),
+    });
 
     // Disable hint button for 10 seconds
     setHintDisabled(true);
@@ -270,8 +299,17 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
             positions.some(
               (position) => position.id !== id && position.y === clampedY
             )
-          )
-            return pos;
+          ) {
+            const index = puzzle.blocks
+              .filter((_, i) => i !== 0)
+              .map((block) => block.id)
+              .indexOf(id);
+            return {
+              id: id,
+              x: 20,
+              y: 20 + index * 60,
+            };
+          }
           return {
             ...pos,
             x: clampedX,
@@ -338,7 +376,7 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
       setShadowBlock(null);
       return;
     }
-    
+
     setShadowBlock({
       x: clampedX,
       y: clampedY,
@@ -396,6 +434,24 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
           {positions.map((position, index) => {
             const block = puzzle.blocks.find((b) => b.id === position.id);
             if (!block) return null;
+            if (index === 0) {
+              return (
+                <CodeBlock
+                  key={block.id}
+                  id={block.id}
+                  ref={blockRef}
+                  code={block.code}
+                  explanation={block.explanation}
+                  position={{ x: position.x, y: position.y }}
+                  isActive={activeId === block.id}
+                  isIncorrect={incorrectBlocks.includes(block.id)}
+                  showHint={hintBlock === block.id}
+                  hintDirection={hintBlock === block.id ? hintDirection : null}
+                  isDraggable={false}
+                  hintEnabled={false}
+                />
+              );
+            }
             return (
               <CodeBlock
                 key={block.id}
@@ -408,6 +464,8 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
                 isIncorrect={incorrectBlocks.includes(block.id)}
                 showHint={hintBlock === block.id}
                 hintDirection={hintBlock === block.id ? hintDirection : null}
+                isDraggable={true}
+                hintEnabled={hintBlock === block.id && Boolean(hintDirection)}
               />
             );
           })}

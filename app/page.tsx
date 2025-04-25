@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { generatePuzzle } from "@/lib/generate-puzzle";
+import { INDENT_WIDTH } from "@/lib/constants";
+
 const puzzle = {
   blocks: [
     {
@@ -22,21 +24,28 @@ const puzzle = {
       code: "    for _ in range(height):".trim(),
       explanation:
         "Starts a loop that runs 'height' times, to print each line of the block.",
-      correctPosition: { x: 700, y: 100 },
+      correctPosition: { x: 700 + INDENT_WIDTH, y: 100 },
     },
     {
       id: "f15664cc-165b-4015-a010-90412bb62aec",
       code: "        print(char * width)".trim(),
       explanation:
         "Prints a line consisting of the character 'char' repeated 'width' times, creating one row of the block.",
-      correctPosition: { x: 700, y: 150 },
+      correctPosition: { x: 700 + INDENT_WIDTH * 2, y: 150 },
     },
     {
       id: "f15664cc-165b-4015-a010-90412bb62aeca",
       code: "        print(char * width)".trim(),
       explanation:
         "Prints a line consisting of the character 'char' repeated 'width' times, creating one row of the block.",
-      correctPosition: { x: 700, y: 200 },
+      correctPosition: { x: 700 + INDENT_WIDTH * 2, y: 200 },
+    },
+    {
+      id: "f15664cc-165b-4015-a010-90412bb62aecb",
+      code: "        print(char * width)".trim(),
+      explanation:
+        "Prints a line consisting of the character 'char' repeated 'width' times, creating one row of the block.",
+      correctPosition: { x: 700 + INDENT_WIDTH * 2, y: 250 },
     },
   ],
   solution: `def print_block(char: str, width: int, height: int) -> None:
