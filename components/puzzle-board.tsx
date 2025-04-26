@@ -32,9 +32,10 @@ import {
   FIRST_BLOCK_Y,
 } from "@/lib/constants";
 import { Puzzle } from "@/interface/puzzle";
+import { getRandomPositions } from "@/lib/utils";
 
 interface PuzzleProps {
-  puzzle: Puzzle
+  puzzle: Puzzle;
 }
 
 interface BlockPosition {
@@ -60,6 +61,7 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
     x: number;
     y: number;
   } | null>(null);
+  const [initialPositions, setInitialPositions] = useState<BlockPosition[]>([]);
   const blockRef = useRef<HTMLDivElement | null>(null);
   const { toast } = useToast();
 
@@ -76,23 +78,32 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
   useEffect(() => {
     if (puzzle && puzzle.blocks) {
       // Create initial positions with random placement on the left side
-      const initialPositions = puzzle.blocks.map((block, index) => {
-        if (index === 0)
-          return {
-            id: block.id,
-            x: FIRST_BLOCK_X,
-            y: FIRST_BLOCK_Y,
-          };
-        return {
+      const tempInitialPositions = [];
+      if (puzzle.blocks[0] !== undefined) {
+        tempInitialPositions.push({
+          id: puzzle.blocks[0].id,
+          x: FIRST_BLOCK_X,
+          y: FIRST_BLOCK_Y,
+        });
+      }
+      const createRandomListPositions = getRandomPositions(
+        puzzle.blocks.length
+      );
+      let i = 0;
+      for (const index of createRandomListPositions) {
+        const block = puzzle.blocks[index];
+        tempInitialPositions.push({
           id: block.id,
           x: 20,
-          y: 20 + (index - 1) * 60,
-        };
-      });
+          y: 20 + i * 60,
+        });
+        i += 1;
+      }
 
-      setPositions(initialPositions);
+      setPositions(tempInitialPositions);
+      setInitialPositions(tempInitialPositions);
       // Reset history
-      setHistory([initialPositions]);
+      setHistory([tempInitialPositions]);
       setHistoryIndex(0);
       setIncorrectBlocks([]);
       setHintBlock(null);
@@ -284,22 +295,15 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
             // Added padding to ensure it doesn't go too far down
             Math.min(snappedY, canvasHeight - LINE_HEIGHT - 39)
           );
-
           if (
-            clampedX < LEFT_BOUNDARY_X ||
             positions.some(
               (position) => position.id !== id && position.y === clampedY
             )
-          ) {
-            const index = puzzle.blocks
-              .filter((_, i) => i !== 0)
-              .map((block) => block.id)
-              .indexOf(id);
-            return {
-              id: id,
-              x: 20,
-              y: 20 + index * 60,
-            };
+          )
+            return pos;
+          if (clampedX < LEFT_BOUNDARY_X) {
+            const position = initialPositions.find((p) => p.id === id)!;
+            return position;
           }
           return {
             ...pos,

@@ -18,3 +18,12 @@ export const mergeRefs = <T>(
     });
   };
 };
+
+export function getRandomPositions(n: number): number[] {
+  const positions = Array.from({ length: n - 1 }, (_, i) => i + 1);
+  for (let i = positions.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [positions[i], positions[j]] = [positions[j], positions[i]];
+  }
+  return positions;
+}
