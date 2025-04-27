@@ -286,18 +286,18 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
           const clampedY = Math.max(
             LINE_HEIGHT,
             // Added padding to ensure it doesn't go too far down
-            Math.min(snappedY, canvasHeight - LINE_HEIGHT - 39)
+            Math.min(snappedY, canvasHeight - LINE_HEIGHT)
           );
+          if (clampedX < LEFT_BOUNDARY_X) {
+            const position = initialPositions.find((p) => p.id === id)!;
+            return position;
+          }
           if (
             positions.some(
               (position) => position.id !== id && position.y === clampedY
             )
           )
             return pos;
-          if (clampedX < LEFT_BOUNDARY_X) {
-            const position = initialPositions.find((p) => p.id === id)!;
-            return position;
-          }
           return {
             ...pos,
             x: clampedX,
@@ -349,11 +349,13 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
     const clampedY = Math.max(
       LINE_HEIGHT,
       // Added padding to ensure it doesn't go too far down
-      Math.min(snappedY, canvasHeight - LINE_HEIGHT - 39)
+      Math.min(snappedY, canvasHeight - LINE_HEIGHT)
     );
-
+    if (clampedX < LEFT_BOUNDARY_X) {
+      setShadowBlock(null);
+      return;
+    }
     if (
-      clampedX < LEFT_BOUNDARY_X ||
       positions.some(
         (position) => position.id !== id && position.y === clampedY
       )
@@ -367,7 +369,7 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
       y: clampedY,
     });
   };
-
+  const height = 60 * puzzle.blocks.length;
   return (
     <div className="bg-gray-100 rounded-lg p-4">
       <DndContext
@@ -379,6 +381,9 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
       >
         <div
           ref={boardRef}
+          style={{
+            height: height + "px",
+          }}
           className="relative bg-white border border-gray-200 rounded-lg h-[500px] mb-4 overflow-hidden"
         >
           {/* Left side (workspace) */}
@@ -399,7 +404,11 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
           <div className="absolute right-0 top-0 w-1/2 h-full bg-yellow-100"></div>
           {process.env.NODE_ENV === "development" && (
             <>
-              {Array.from({ length: 10 }).map((_, i) => (
+              {Array.from({
+                length: boardRef.current
+                  ? Math.ceil(boardRef.current.clientHeight / LINE_HEIGHT)
+                  : 16,
+              }).map((_, i) => (
                 <div
                   key={`row-${i}`}
                   className="absolute right-0 w-1/2 h-px bg-gray-200"

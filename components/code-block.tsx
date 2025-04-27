@@ -1,6 +1,6 @@
 "use client";
 
-import { RefObject, useState } from "react";
+import { RefObject, useEffect, useRef, useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import {
@@ -62,6 +62,17 @@ export default function CodeBlock({
     | React.RefCallback<HTMLDivElement | null>;
   finalRef = mergeRefs([setNodeRef, ref]);
 
+  const editorContainerRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (codeWidth != undefined || !editorContainerRef.current) return;
+    setTimeout(() => {
+      setCodeWidth(
+        editorContainerRef.current!.querySelector(
+          ".monaco-editor .lines-content > .view-lines"
+        )!.clientWidth
+      );
+    }, 2000);
+  }, [codeWidth, editorContainerRef.current]);
   return (
     <>
       <div
@@ -82,20 +93,11 @@ export default function CodeBlock({
           p-1 flex items-center
         `}
         >
-          <div className="min-w-[150px]">
+          <div ref={editorContainerRef} className="min-w-[150px]">
             <Editor
               height="40px"
               language={"python"}
               value={code}
-              onMount={(editor) => {
-                const element = editor
-                  .getDomNode()!
-                  .querySelector(
-                    ".monaco-editor .lines-content > .view-lines > .view-line > span"
-                  );
-                if (!element) return;
-                setCodeWidth(element!.clientWidth + 16);
-              }}
               options={{
                 minimap: { enabled: false },
                 domReadOnly: true,
@@ -122,7 +124,11 @@ export default function CodeBlock({
                 multiCursorMergeOverlapping: false,
                 renderWhitespace: "none",
               }}
-              width={codeWidth ? codeWidth.toString() + "px" : undefined}
+              width={
+                codeWidth && codeWidth > 150
+                  ? codeWidth.toString() + "px"
+                  : undefined
+              }
               theme="vs"
             />
           </div>

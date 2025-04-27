@@ -1,10 +1,15 @@
 "use server";
 
 import { v4 as uuidv4 } from "uuid";
-import { INDENT_WIDTH } from "../lib/constants";
+import { INDENT_WIDTH, LINE_HEIGHT } from "../lib/constants";
 import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
-import { ApiKeySchema, PuzzleResponseSchema, ServerResponse, TaskSchema } from "@/schema/puzzle";
+import {
+  ApiKeySchema,
+  PuzzleResponseSchema,
+  ServerResponse,
+  TaskSchema,
+} from "@/schema/puzzle";
 import { Puzzle, PuzzleBlock } from "@/interface/puzzle";
 import { headers } from "next/headers";
 import { rateLimit } from "@/lib/rateLimiter";
@@ -23,22 +28,22 @@ export async function generatePuzzle(
     };
   }
 
-  const parsedTask = TaskSchema.safeParse(task)
+  const parsedTask = TaskSchema.safeParse(task);
   if (!parsedTask.success) {
     return {
       success: false,
       message: parsedTask.error.errors[0].message,
-      data: null
-    }
+      data: null,
+    };
   }
 
-  const parsedApiKey = ApiKeySchema.safeParse(apiKey)
+  const parsedApiKey = ApiKeySchema.safeParse(apiKey);
   if (!parsedApiKey.success) {
     return {
       success: false,
       message: parsedApiKey.error.errors[0].message,
-      data: null
-    }
+      data: null,
+    };
   }
 
   try {
@@ -98,7 +103,7 @@ Make sure each block is a meaningful unit of code (e.g., a line, a function, a l
           explanation: block.explanation,
           correctPosition: {
             x: 700 + INDENT_WIDTH * block.indentation,
-            y: 50 + index * 50,
+            y: 50 + index * LINE_HEIGHT,
           },
         };
       }
