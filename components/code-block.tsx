@@ -25,6 +25,7 @@ interface CodeBlockProps {
   hintDirection: { x: number; y: number } | null;
   isDraggable: boolean;
   hintEnabled: boolean;
+  className?: React.HTMLAttributes<HTMLDivElement>["className"];
   ref: RefObject<HTMLDivElement | null>;
 }
 
@@ -39,9 +40,11 @@ export default function CodeBlock({
   hintDirection,
   isDraggable = true,
   hintEnabled = false,
+  className,
   ref,
 }: CodeBlockProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [codeWidth, setCodeWidth] = useState<number | null>(null);
   const { attributes, listeners, setNodeRef, transform } = useDraggable({
     id,
     disabled: !isDraggable,
@@ -64,7 +67,9 @@ export default function CodeBlock({
       <div
         ref={finalRef}
         style={style}
-        className={`absolute cursor-grab ${isActive ? "cursor-grabbing" : ""}`}
+        className={`absolute cursor-grab ${isActive ? "cursor-grabbing" : ""} ${
+          className ?? ""
+        }`}
         {...listeners}
         {...attributes}
         onMouseEnter={() => setIsHovered(true)}
@@ -77,11 +82,20 @@ export default function CodeBlock({
           p-1 flex items-center
         `}
         >
-          <div className="min-w-[150px] max-w-[300px]">
+          <div className="min-w-[150px]">
             <Editor
               height="40px"
               language={"python"}
               value={code}
+              onMount={(editor) => {
+                const element = editor
+                  .getDomNode()!
+                  .querySelector(
+                    ".monaco-editor .lines-content > .view-lines > .view-line > span"
+                  );
+                if (!element) return;
+                setCodeWidth(element!.clientWidth + 16);
+              }}
               options={{
                 minimap: { enabled: false },
                 domReadOnly: true,
@@ -101,7 +115,14 @@ export default function CodeBlock({
                 overviewRulerBorder: false,
                 renderLineHighlight: "none",
                 padding: { top: 8, bottom: 8 },
+                cursorStyle: "line",
+                mouseWheelZoom: false,
+                dragAndDrop: false,
+                contextmenu: false,
+                multiCursorMergeOverlapping: false,
+                renderWhitespace: "none",
               }}
+              width={codeWidth ? codeWidth.toString() + "px" : undefined}
               theme="vs"
             />
           </div>
