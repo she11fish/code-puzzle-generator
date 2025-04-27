@@ -285,7 +285,6 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
           );
           const clampedY = Math.max(
             LINE_HEIGHT,
-            // Added padding to ensure it doesn't go too far down
             Math.min(snappedY, canvasHeight - LINE_HEIGHT)
           );
           if (clampedX < LEFT_BOUNDARY_X) {
@@ -348,7 +347,6 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
     );
     const clampedY = Math.max(
       LINE_HEIGHT,
-      // Added padding to ensure it doesn't go too far down
       Math.min(snappedY, canvasHeight - LINE_HEIGHT)
     );
     if (clampedX < LEFT_BOUNDARY_X) {
