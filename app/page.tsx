@@ -24,7 +24,6 @@ export default function Home() {
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const { toast } = useToast();
 
-  // Check if API key exists in local storage
   useEffect(() => {
     const apiKey = localStorage.getItem("openai-api-key");
     if (!apiKey) {
@@ -50,8 +49,15 @@ export default function Home() {
 
     try {
       setIsGenerating(true);
-      const generatedPuzzle = await generatePuzzle(task, apiKey);
-      setPuzzle(generatedPuzzle);
+      const response = await generatePuzzle(task, apiKey);
+      if (!response.success) {
+        return toast({
+          title: "Error",
+          description: response.message,
+          variant: "destructive",
+        });
+      }
+      setPuzzle(response.data);
     } catch (error) {
       console.error("Error generating puzzle:", error);
       toast({

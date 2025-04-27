@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import { INDENT_WIDTH } from "../lib/constants";
 import OpenAI from "openai";
 import { zodResponseFormat } from "openai/helpers/zod";
-import { PuzzleResponseSchema } from "@/schema/puzzle";
+import { ApiKeySchema, PuzzleResponseSchema, ServerResponse, TaskSchema } from "@/schema/puzzle";
 import { Puzzle, PuzzleBlock } from "@/interface/puzzle";
 import { headers } from "next/headers";
 import { rateLimit } from "@/lib/rateLimiter";
@@ -12,12 +12,35 @@ import { rateLimit } from "@/lib/rateLimiter";
 export async function generatePuzzle(
   task: string,
   apiKey: string
-): Promise<Puzzle> {
+): Promise<ServerResponse> {
   const ip = (await headers()).get("x-forwarded-for") ?? "unknown";
   const isRateLimited = rateLimit(ip);
   if (isRateLimited) {
-    throw new Error("Rate limit exceeded, please try again later.");
+    return {
+      success: false,
+      message: "Rate limit exceeded, please try again later.",
+      data: null,
+    };
   }
+
+  const parsedTask = TaskSchema.safeParse(task)
+  if (!parsedTask.success) {
+    return {
+      success: false,
+      message: parsedTask.error.errors[0].message,
+      data: null
+    }
+  }
+
+  const parsedApiKey = ApiKeySchema.safeParse(apiKey)
+  if (!parsedApiKey.success) {
+    return {
+      success: false,
+      message: parsedApiKey.error.errors[0].message,
+      data: null
+    }
+  }
+
   try {
     const openai = new OpenAI({
       apiKey,
@@ -58,12 +81,15 @@ Make sure each block is a meaningful unit of code (e.g., a line, a function, a l
 
     const content = completion.choices[0].message.content;
     if (!content) {
-      throw new Error(`API request failed`);
+      return {
+        success: false,
+        message: `API request failed`,
+        data: null,
+      };
     }
 
     const parsedContent = PuzzleResponseSchema.parse(JSON.parse(content));
 
-    // Create blocks with positions
     const blocks: PuzzleBlock[] = parsedContent.blocks.map(
       (block: any, index: number) => {
         return {
@@ -79,12 +105,19 @@ Make sure each block is a meaningful unit of code (e.g., a line, a function, a l
     );
 
     return {
-      blocks,
+      success: true,
+      message: "Successfully created code puzzle!",
+      data: {
+        blocks,
+      },
     };
   } catch (error) {
     console.error("Error generating puzzle:", error);
-    throw new Error(
-      "Failed to generate puzzle. Please check your API key and try again."
-    );
+    return {
+      success: false,
+      message:
+        "Failed to generate puzzle. Please check your API key and try again.",
+      data: null,
+    };
   }
 }

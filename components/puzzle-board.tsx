@@ -74,10 +74,8 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
     })
   );
 
-  // Initialize positions
   useEffect(() => {
     if (puzzle && puzzle.blocks) {
-      // Create initial positions with random placement on the left side
       const tempInitialPositions = [];
       if (puzzle.blocks[0] !== undefined) {
         tempInitialPositions.push({
@@ -102,7 +100,6 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
 
       setPositions(tempInitialPositions);
       setInitialPositions(tempInitialPositions);
-      // Reset history
       setHistory([tempInitialPositions]);
       setHistoryIndex(0);
       setIncorrectBlocks([]);
@@ -138,7 +135,6 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
   const handleCheck = () => {
     const incorrect: string[] = [];
 
-    // Check each block's position against its correct position
     puzzle.blocks.forEach((block) => {
       const currentPos = positions.find((pos) => pos.id === block.id);
       if (!currentPos) return;
@@ -196,7 +192,6 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
       return;
     }
 
-    // Select a random incorrect block
     const randomBlock = incorrect[Math.floor(Math.random() * incorrect.length)];
     const currentPos = positions.find((pos) => pos.id === randomBlock.id)!;
     setHintBlock(randomBlock.id);
@@ -241,14 +236,12 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
       y: Math.sign(yDiffAfterToleration),
     });
 
-    // Disable hint button for 10 seconds
     setHintDisabled(true);
     setTimeout(() => {
       setHintDisabled(false);
     }, 10000);
   };
 
-  // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "z") {
@@ -314,7 +307,6 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
         return pos;
       });
 
-      // Add to history
       const newHistory = history.slice(0, historyIndex + 1);
       newHistory.push(newPositions);
       setHistory(newHistory);
@@ -323,9 +315,7 @@ export default function PuzzleBoard({ puzzle }: PuzzleProps) {
       return newPositions;
     });
 
-    // Clear any incorrect blocks highlighting
     setIncorrectBlocks([]);
-    // Clear any hints
     setHintBlock(null);
     setHintDirection(null);
     setShadowBlock(null);
